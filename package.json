@@ -1,0 +1,14 @@
+{
+  "name": "play-with-gnosis-safe",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/rndquu/play-with-gnosis-safe.git",
+  "author": "rndquu <rndquu@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@gelatonetwork/relay-sdk": "^3.5.0",
+    "@safe-global/safe-core-sdk": "^3.3.2",
+    "@safe-global/safe-ethers-lib": "^1.9.2",
+    "@safe-global/safe-service-client": "^2.0.0"
+  }
+}
