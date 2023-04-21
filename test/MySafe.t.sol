@@ -521,4 +521,68 @@ contract MySafeTest is Test {
          * - perhaps we don't need to subtract "internal tx fee" on step 4
          */
     }
+
+    function testTx() public {
+        // addresses
+        address bountyHunterAddress = 0xB52e2e8ED4C4B57ddD41FA5b62e721b90e77A36b;
+        address gelatoRefundAddress = 0x3AC05161b76a35c1c28dC99Aa01BEd7B24cEA3bf;
+        address daiAddress = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
+        address safeAddress = 0xfDA61Db9CD7358DC4A3b828E5A5597e275C348ee;
+
+        // safe owner PKs
+        uint pkOwner1 = 0;
+        uint pkOwner2 = 0;
+
+        // payment params
+        uint internalTxGas = 350_000;
+        uint baseGas = 950_000;
+        uint gasPrice = 1;
+
+        uint bountyHunterReward = 100000000000000; // 0.0001 DAI
+
+        // init contracts
+        ERC20PresetFixedSupply daiContract = ERC20PresetFixedSupply(daiAddress);
+        safe = GnosisSafe(payable(safeAddress));
+
+        // prepare internal tx data
+        bytes memory txData = abi.encodeWithSignature("transfer(address,uint256)", bountyHunterAddress, bountyHunterReward);
+
+        // get tx hash
+        bytes32 txHash = safe.getTransactionHash(
+            address(daiContract), // destination address
+            0, // ether value
+            txData, // data payload
+            Enum.Operation.Call, // operation type
+            internalTxGas, // gas that should be used for the internal safe transaction
+            baseGas, // gas costs for data used to trigger the safe transaction
+            gasPrice, // maximum gas price that should be used for this transaction
+            address(daiContract), // token address (or 0 if ETH) that is used for the payment
+            gelatoRefundAddress, // address of receiver of gas payment (or 0 if tx.origin)
+            safe.nonce() // transaction nonce
+        );
+        // sign tx hash to get (r,s,v)
+        (uint8 vUser1, bytes32 rUser1, bytes32 sUser1) = vm.sign(pkOwner1, txHash);
+        (uint8 vUser2, bytes32 rUser2, bytes32 sUser2) = vm.sign(pkOwner2, txHash);
+
+        console.log('===balances before (DAI)===');
+        console.log('Balance (bounty hunter):', daiContract.balanceOf(bountyHunterAddress));
+
+        // execute tx by bounty hunter
+        vm.prank(0xb8023b37150A8d98A491523c1552D8b4cE58ac93);
+        safe.execTransaction(
+            address(daiContract), // destination address
+            0, // ether value
+            txData, // data payload 
+            Enum.Operation.Call, // operation type
+            internalTxGas, // gas that should be used for the internal safe transaction 
+            baseGas, // gas costs for data used to trigger the safe transaction 
+            gasPrice, // maximum gas price that should be used for this transaction
+            address(daiContract), // token address (or 0 if ETH) that is used for the payment
+            payable(gelatoRefundAddress), // address of receiver of gas payment (or 0 if tx.origin)
+            abi.encodePacked(rUser1, sUser1, vUser1, rUser2, sUser2, vUser2) // packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+        );
+
+        console.log('===balances after (DAI)===');
+        console.log('Balance (bounty hunter):', daiContract.balanceOf(bountyHunterAddress));
+    }
 }
