@@ -534,8 +534,8 @@ contract MySafeTest is Test {
         uint pkOwner2 = 0;
 
         // payment params
-        uint internalTxGas = 350_000;
-        uint baseGas = 950_000;
+        uint internalTxGas = 50_000;
+        uint baseGas = 100000000000000000;
         uint gasPrice = 1;
 
         uint bountyHunterReward = 100000000000000; // 0.0001 DAI
@@ -566,6 +566,7 @@ contract MySafeTest is Test {
 
         console.log('===balances before (DAI)===');
         console.log('Balance (bounty hunter):', daiContract.balanceOf(bountyHunterAddress));
+        console.log('Balance (gelato refund):', daiContract.balanceOf(gelatoRefundAddress));
 
         // execute tx by bounty hunter
         vm.prank(0xb8023b37150A8d98A491523c1552D8b4cE58ac93);
@@ -584,5 +585,9 @@ contract MySafeTest is Test {
 
         console.log('===balances after (DAI)===');
         console.log('Balance (bounty hunter):', daiContract.balanceOf(bountyHunterAddress));
+        console.log('Balance (gelato refund):', daiContract.balanceOf(gelatoRefundAddress));
+
+        console.log('===signatures===');
+        console.logBytes(abi.encodePacked(rUser1, sUser1, vUser1, rUser2, sUser2, vUser2));
     }
 }

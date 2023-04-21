@@ -1,5 +1,8 @@
 /**
  * Relays execution of a safe transaction via gelato network
+ * 
+ * Success task: https://relay.gelato.digital/tasks/status/0xfb3aacc673b5dcf1e4a01ba15617b2956e2cbdebc882b080664ae100ddb92cbc
+ * Success tx: https://polygonscan.com/tx/0x97590e4e35e6363b3f355f65e2ca606573ad4ce5eac8ddb8ce4d4320982baea4
  */
 
 import { GelatoRelay, CallWithSyncFeeRequest } from "@gelatonetwork/relay-sdk";
@@ -39,11 +42,12 @@ async function main() {
                 0, // ether value
                 latestPendingTx.data, // data payload of safe tx
                 0, // operation, call or delegatecall
-                350_000, // safe tx gas
-                950_000, // base gas
+                String(50_000), // safe tx gas
+                String(100000000000000000), // base gas
                 1, // gas price
                 process.env.DAI_ADDRESS, // gas token used for payment (0x0 for ETH)
                 process.env.GELATO_REFUND_ADDRESS, // refund receiver
+                // TODO: invalid signature calc, see test "MySafe.t.sol:testTx()"
                 `0x${latestPendingTx.confirmations[0].signature.replace("0x", "")}${latestPendingTx.confirmations[1].signature.replace("0x", "")}` // signatures
             );
             
