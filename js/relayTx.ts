@@ -43,11 +43,10 @@ async function main() {
                 latestPendingTx.data, // data payload of safe tx
                 0, // operation, call or delegatecall
                 String(50_000), // safe tx gas
-                String(100000000000000000), // base gas
-                1, // gas price
+                String(100000000), // base gas
+                1000000000, // gas price
                 process.env.DAI_ADDRESS, // gas token used for payment (0x0 for ETH)
                 process.env.GELATO_REFUND_ADDRESS, // refund receiver
-                // TODO: invalid signature calc, see test "MySafe.t.sol:testTx()"
                 `0x${latestPendingTx.confirmations[0].signature.replace("0x", "")}${latestPendingTx.confirmations[1].signature.replace("0x", "")}` // signatures
             );
             

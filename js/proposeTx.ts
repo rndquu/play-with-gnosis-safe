@@ -57,6 +57,11 @@ async function main() {
     value: "0", // in wei
     data: String(transferData.data),
     operation: OperationType.Call,
+    safeTxGas: 50_000,
+    baseGas: 100000000,
+    gasPrice: 1000000000,
+    gasToken: process.env.DAI_ADDRESS,
+    refundReceiver: process.env.GELATO_REFUND_ADDRESS,
     nonce: nextNonce,
   };
   const safeTransaction = await safe.createTransaction({ safeTransactionData });
