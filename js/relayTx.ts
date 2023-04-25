@@ -6,6 +6,7 @@
  */
 
 import { GelatoRelay, CallWithSyncFeeRequest } from "@gelatonetwork/relay-sdk";
+import Safe from "@safe-global/safe-core-sdk";
 import EthersAdapter from "@safe-global/safe-ethers-lib";
 import SafeServiceClient from "@safe-global/safe-service-client";
 import * as dotenv from 'dotenv';
@@ -14,13 +15,13 @@ import GNOSIS_SAFE from "./gnosis_safe.json";
 
 dotenv.config();
 
-async function main() {
-    // create EthAdapter instance
-    const ethAdapter = new EthersAdapter({
-        ethers,
-        signerOrProvider: new ethers.providers.JsonRpcProvider(process.env.RPC_URL),
-    });
+// create EthAdapter instance
+const ethAdapter = new EthersAdapter({
+    ethers,
+    signerOrProvider: new ethers.providers.JsonRpcProvider(process.env.RPC_URL),
+});
 
+async function main() {
     // Create Safe Service Client instance
     const service = new SafeServiceClient({
         txServiceUrl: String(process.env.SAFE_TX_SERVICE_URL),
@@ -39,24 +40,24 @@ async function main() {
             const safeContract = new ethers.Contract(String(process.env.SAFE_ADDRESS), GNOSIS_SAFE.abi);
             const execTransactionData = await safeContract.populateTransaction.execTransaction(
                 latestPendingTx.to, // destination address of safe tx, DAI address
-                0, // ether value
+                latestPendingTx.value, // ether value
                 latestPendingTx.data, // data payload of safe tx
-                0, // operation, call or delegatecall
-                String(50_000), // safe tx gas
-                String(100000000), // base gas
-                1000000000, // gas price
-                process.env.DAI_ADDRESS, // gas token used for payment (0x0 for ETH)
-                process.env.GELATO_REFUND_ADDRESS, // refund receiver
-                `0x${latestPendingTx.confirmations[0].signature.replace("0x", "")}${latestPendingTx.confirmations[1].signature.replace("0x", "")}` // signatures
+                latestPendingTx.operation, // operation, call or delegatecall
+                latestPendingTx.safeTxGas, // safe tx gas
+                latestPendingTx.baseGas, // base gas
+                latestPendingTx.gasPrice, // gas price
+                latestPendingTx.gasToken, // gas token used for payment (0x0 for ETH)
+                latestPendingTx.refundReceiver, // refund receiver
+                getCombinedSignature(String(process.env.SAFE_ADDRESS), latestPendingTx.confirmations), // signatures
             );
-            
+
             // relay tx
             const relay = new GelatoRelay();
             const request: CallWithSyncFeeRequest = {
                 chainId: String(process.env.CHAIN_ID),
                 target: String(execTransactionData.to),
                 data: execTransactionData.data as BytesLike,
-                feeToken: String(process.env.DAI_ADDRESS),
+                feeToken: latestPendingTx.gasToken,
             };
             const response = await relay.callWithSyncFee(request);
             console.log(`Check execution status here: https://relay.gelato.digital/tasks/status/${response.taskId}`);
@@ -69,3 +70,41 @@ async function main() {
 }
 
 main();
+
+//===================
+// Helper functions
+//===================
+
+/**
+ * Returns combined signature for gnosis safe transaction
+ * NOTICE: signatures should be placed from last safe owner to the 1st one
+ * @param safeAddress safe address
+ * @param confirmations confirmations (owner + signature)
+ * @return combined signature
+ */
+async function getCombinedSignature(
+    safeAddress: string, 
+    confirmations: {
+        owner: string,
+        signature: string,
+    }[],
+) {
+    let combinedSignature = '0x';
+    // get safe instance
+    const safe = await Safe.create({
+        ethAdapter,
+        safeAddress: safeAddress,
+    });
+    // get safe owners
+    const owners = await safe.getOwners();
+    // add signature for each owner
+    for (let i = owners.length - 1; i >= 0; i--) {
+        // find owner's confirmation
+        const confirmationsFiltered = confirmations.filter(confirmation => confirmation.owner === owners[i]);
+        if (confirmationsFiltered.length === 0) throw Error(`Confirmation for owner ${owners[i]} not found`);
+        // add owner's signature
+        combinedSignature += confirmationsFiltered[0].signature.replace('0x', '');
+    }
+
+    return combinedSignature;
+}

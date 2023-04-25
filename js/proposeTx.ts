@@ -12,6 +12,8 @@ import * as dotenv from 'dotenv';
 import { ethers } from "ethers";
 import DAI_ABI from "./DAI_abi.json";
 
+const GWEI_AMOUNT_1 = 1000000000;
+
 dotenv.config();
 
 // variables depending on a bounty hunter wallet and reward
@@ -58,8 +60,8 @@ async function main() {
     data: String(transferData.data),
     operation: OperationType.Call,
     safeTxGas: 50_000,
-    baseGas: 100000000,
-    gasPrice: 1000000000,
+    baseGas: GWEI_AMOUNT_1, // (constant, don't change)
+    gasPrice: 50000000, // 0.05 DAI
     gasToken: process.env.DAI_ADDRESS,
     refundReceiver: process.env.GELATO_REFUND_ADDRESS,
     nonce: nextNonce,
