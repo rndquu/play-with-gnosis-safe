@@ -48,7 +48,7 @@ async function main() {
                 latestPendingTx.gasPrice, // gas price
                 latestPendingTx.gasToken, // gas token used for payment (0x0 for ETH)
                 latestPendingTx.refundReceiver, // refund receiver
-                getCombinedSignature(String(process.env.SAFE_ADDRESS), latestPendingTx.confirmations), // signatures
+                await getCombinedSignature(String(process.env.SAFE_ADDRESS), latestPendingTx.confirmations), // signatures
             );
 
             // relay tx

@@ -4,15 +4,17 @@
  * Example of the proposed transaction: https://app.safe.global/gor:0x839F2406464B98128c67c00dB9408F07bB9D4629/transactions/tx?id=multisig_0x839F2406464B98128c67c00dB9408F07bB9D4629_0x76eda2e634a443df5274b56d67fc2e888c056ff766dffc50c00c3c16c21d68e2
  */
 
+import { GelatoRelay } from "@gelatonetwork/relay-sdk";
 import Safe from "@safe-global/safe-core-sdk";
 import { OperationType, SafeTransactionDataPartial } from "@safe-global/safe-core-sdk-types";
 import EthersAdapter from "@safe-global/safe-ethers-lib";
 import SafeServiceClient from "@safe-global/safe-service-client";
 import * as dotenv from 'dotenv';
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import DAI_ABI from "./DAI_abi.json";
 
 const GWEI_AMOUNT_1 = 1000000000;
+const SAFE_TX_EXECUTION_GAS_LIMIT = 170_000;
 
 dotenv.config();
 
@@ -43,7 +45,7 @@ async function main() {
   });
 
   // create DAI contract instance
-  const daiContract = new ethers.Contract(String(process.env.DAI_ADDRESS), DAI_ABI);
+  const daiContract = new ethers.Contract(String(process.env.DAI_ADDRESS), DAI_ABI, signer);
   const transferData = await daiContract.populateTransaction.transfer(
     bountyHunterAddress,
     ethers.utils.parseEther(bountyHunterRewardEth).toString()
@@ -53,15 +55,35 @@ async function main() {
   // next nonce is the next nonce after the last queued (not yet executed) transaction
   const nextNonce = await service.getNextNonce(String(process.env.SAFE_ADDRESS));
 
+  // get gas estimation for internal safe tx
+  // DAI transfer gas estimation: 87517
+  // Safe tx execution for DAI transfer: 166712
+  const safeTxGasEstimate = ((await daiContract.estimateGas.transfer(
+    bountyHunterAddress, 
+    ethers.utils.parseEther(bountyHunterRewardEth).toString()
+  )).toString());
+
+  // get gelato fee in gwei
+  const relay = new GelatoRelay();
+  const estimatedFeeWei = await relay.getEstimatedFee(
+    +String(process.env.CHAIN_ID), 
+    String(process.env.DAI_ADDRESS), 
+    BigNumber.from(SAFE_TX_EXECUTION_GAS_LIMIT),
+    true,
+  );
+  const estimatedFeeGwei = Math.round(+ethers.utils.formatUnits(estimatedFeeWei, 'gwei'));
+  // add extra rate to fee in case gas fees are volatile
+  const estimatedFeeGweiWithExtra = Math.round(estimatedFeeGwei * ((100 + +String(process.env.SAFE_TX_GAS_BONUS_RATE)) / 100));
+
   // create transaction
   const safeTransactionData: SafeTransactionDataPartial = {
     to: String(process.env.DAI_ADDRESS),
     value: "0", // in wei
     data: String(transferData.data),
     operation: OperationType.Call,
-    safeTxGas: 50_000,
+    safeTxGas: +safeTxGasEstimate,
     baseGas: GWEI_AMOUNT_1, // (constant, don't change)
-    gasPrice: 50000000, // 0.05 DAI
+    gasPrice: estimatedFeeGweiWithExtra,
     gasToken: process.env.DAI_ADDRESS,
     refundReceiver: process.env.GELATO_REFUND_ADDRESS,
     nonce: nextNonce,
