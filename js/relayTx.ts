@@ -1,8 +1,8 @@
 /**
  * Relays execution of a safe transaction via gelato network
  * 
- * Success task: https://relay.gelato.digital/tasks/status/0xfb3aacc673b5dcf1e4a01ba15617b2956e2cbdebc882b080664ae100ddb92cbc
- * Success tx: https://polygonscan.com/tx/0x97590e4e35e6363b3f355f65e2ca606573ad4ce5eac8ddb8ce4d4320982baea4
+ * Success task: https://relay.gelato.digital/tasks/status/0xcf4c207de47f651a527dc64ad22094ceeb3b8a46570c5080b0da5546364da82c
+ * Success tx: https://polygonscan.com/tx/0x5182255d1c59bc5fbcadf5b99aeb34cf40f388fc256487dee0c023fe2629ecef
  */
 
 import { GelatoRelay, CallWithSyncFeeRequest } from "@gelatonetwork/relay-sdk";
