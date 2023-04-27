@@ -1,5 +1,7 @@
 /**
  * Relays multiple txs via Gnosis Safe MultiSend contract
+ * Success API request: https://relay.gelato.digital/tasks/status/0x5563af0ff2ea4c04cc0137812e1100930d0131a8b0f0b26d5e1d3c72ca451377
+ * Success tx: https://polygonscan.com/tx/0x5f408d1072b08a33db5b1e083b322aef2eb32fbe8b1b139ca9e653fdba96616c
  */
 
 import { GelatoRelay, CallWithSyncFeeRequest } from "@gelatonetwork/relay-sdk";
@@ -11,7 +13,6 @@ import { BytesLike, ethers } from "ethers";
 import * as ethersMultisend from 'ethers-multisend';
 import { MetaTransaction } from 'ethers-multisend';
 import GNOSIS_SAFE from "./gnosis_safe.json";
-import MULTISEND_ABI from "./multisend_abi.json";
 
 dotenv.config();
 
@@ -69,18 +70,12 @@ async function main() {
         // encode array of meta txs for use in MultiSend
         const metaTxsEncoded = ethersMultisend.encodeMulti(metaTxs);
 
-        // init multisend contract
-        const multiSendContract = new ethers.Contract(String(process.env.MULTISEND_ADDRESS), MULTISEND_ABI);
-        
-        // prepare multisend tx data
-        const multiSendTxData = await multiSendContract.populateTransaction.multiSend(metaTxsEncoded.data);
-
         // relay tx
         const relay = new GelatoRelay();
         const request: CallWithSyncFeeRequest = {
             chainId: String(process.env.CHAIN_ID),
-            target: String(multiSendTxData.to),
-            data: multiSendTxData.data as BytesLike,
+            target: String(process.env.MULTI_SEND_CALL_ONLY_ADDRESS),
+            data: metaTxsEncoded.data as BytesLike,
             feeToken: String(process.env.DAI_ADDRESS),
         };
         const response = await relay.callWithSyncFee(request);
