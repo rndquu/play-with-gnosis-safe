@@ -10,6 +10,7 @@
     "@safe-global/safe-core-sdk": "^3.3.2",
     "@safe-global/safe-ethers-lib": "^1.9.2",
     "@safe-global/safe-service-client": "^2.0.0",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "ethers-multisend": "^2.4.0"
   }
 }
